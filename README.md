@@ -2,7 +2,7 @@
 
 SortFlow is an interactive, real-time 2D simulation of automated warehouse package sortation. It demonstrates dynamic pathfinding, traffic management, collision avoidance, and real-time path recalculation using **Dijkstra's Algorithm** over a custom web socket connection.
 
-🔗 **Live Demo**: [https://sortflow-demo.vercel.app](https://sortflow-demo.vercel.app)
+🔗 **Live Demo**: [https://sortflow-sim.vercel.app](https://sortflow-sim.vercel.app)
 
 ## Key Features
 
@@ -21,23 +21,15 @@ SortFlow is an interactive, real-time 2D simulation of automated warehouse packa
 
 ## Architecture
 
-SortFlow is built on a real-time event-driven client-server architecture:
+SortFlow is built on a fully self-contained, browser-native client-side architecture:
 
 ```mermaid
 graph TD
-    subgraph Client (Frontend - React + Vite)
-        A[App.tsx Dashboard] --> B[WarehouseCanvas.tsx Renderer]
-        A --> C[Zustand Store]
-        C -->|State Subscription| A
-        C -->|Render Loop Feed| B
-        D[Socket.io Client] -->|State Updates & Spawn Events| C
-    end
-    subgraph Server (Backend - Node + Express)
-        E[Socket.io Server] <-->|WS Connection| D
-        F[Simulation Loop - Tick Rate] -->|Updates state| G[Simulation State]
-        G -->|Emits Frame Updates| E
-        H[Dijkstra Router] -->|Calculates Optimal Path| F
-        E -->|Toggle Jam / Manual Spawn| F
+    subgraph Client ["Client-Side Standalone Architecture (React + Vite)"]
+        A[App.tsx Dashboard UI] <-->|UI Controls & Inspections| B[Zustand Store]
+        B -->|Package State & Path Matrix| C[WarehouseCanvas.tsx Renderer]
+        D[Simulation Loop - setInterval Clock] -->|Updates State Variables| B
+        E[Dijkstra Pathfinder Utility] -->|Calculates Routing Paths| D
     end
 ```
 
@@ -86,46 +78,19 @@ The flowchart below shows the dynamic state machine of a package as it traverses
 
 ```mermaid
 flowchart TD
-    Start([Package Spawns]) --> Route[Calculate Dijkstra Shortest Path]
-    Route --> Move[Move Along Edge Segment]
-    Move --> CheckJam{Conveyor Jammed?}
-    CheckJam -- Yes --> Wait[Status: WAITING - Freeze Package]
-    Wait --> Clean{Jam Cleared?}
-    Clean -- Yes --> Move
-    Clean -- No --> Wait
-    CheckJam -- No --> CheckArrival{Arrived at Junction Node?}
-    CheckArrival -- No --> Move
-    CheckArrival -- Yes --> CheckDest{Is Destination Terminal?}
-    CheckDest -- Yes --> Arrive([Status: ARRIVED - Process Cargo])
-    CheckDest -- No --> Reroute[Run Junction Pathfinder Recalculator]
+    Start(["Package Spawns"]) --> Route["Calculate Dijkstra Shortest Path"]
+    Route --> Move["Move Along Edge Segment"]
+    Move --> CheckJam{"Conveyor Jammed?"}
+    CheckJam -- "Yes" --> Wait["Status: WAITING - Freeze Package"]
+    Wait --> Clean{"Jam Cleared?"}
+    Clean -- "Yes" --> Move
+    Clean -- "No" --> Wait
+    CheckJam -- "No" --> CheckArrival{"Arrived at Junction Node?"}
+    CheckArrival -- "No" --> Move
+    CheckArrival -- "Yes" --> CheckDest{"Is Destination Terminal?"}
+    CheckDest -- "Yes" --> Arrive(["Status: ARRIVED - Process Cargo"])
+    CheckDest -- "No" --> Reroute["Run Junction Pathfinder Recalculator"]
     Reroute --> Move
 ```
 
----
 
-## Setup & Running Locally
-
-### Prerequisites
-- [Node.js](https://nodejs.org/) (v18+)
-- [NPM](https://www.npmjs.com/)
-
-### Installation
-From the root directory, install all workspace dependencies:
-```bash
-npm run install:all
-```
-
-### Running the Application
-To run both the backend server and frontend development server concurrently:
-```bash
-npm run dev
-```
-
-- **Frontend**: [http://localhost:3000](http://localhost:3000)
-- **Backend**: [http://localhost:3001](http://localhost:3001)
-
-### Building for Production
-To compile and build both workspaces:
-```bash
-npm run build
-```
